@@ -318,6 +318,7 @@ void ordijoue_mcts(Etat * etat, int tempsmax) {
     tic = clock();
     int temps;
     
+    // Coup possible
     Coup ** coups;
     Coup * meilleur_coup ;
     
@@ -328,14 +329,61 @@ void ordijoue_mcts(Etat * etat, int tempsmax) {
     // créer les premiers noeuds:
     coups = coups_possibles(racine->etat);
     int k = 0;
+    Coup * coupAlea;
     Noeud * enfant;
     while ( coups[k] != NULL) {
         enfant = ajouterEnfant(racine, coups[k]);
+        Etat * tmp = enfant->etat;
+        // Tant qu'on a pas atteint un état terminal
+        while(testFin(tmp) == NON){
+            // On calcule un coup aléatoire qui est jouable
+            do{
+                coupAlea = nouveauCoup(rand()%7);
+            }while(!coupJouable(*tmp,*coupAlea));
+            // Et on le joue
+            jouerCoup(tmp,coupAlea);
+        }
+        printf("%d \n",testFin(tmp));
+        enfant->nb_simus++;
+        if(test(tmp) == ORDI_GAGNE){
+            enfant->nb_victoires++;
+        }else if(test(tmp) == HUMAIN_GAGNE){
+            enfant->nb_victoires--;
+        }
         k++;
     }
     
+    int i;
+    Noeud * cur = racine;
+    Noeud * max = racine->enfant[0];
+    do{
+        
+        // On récupère le noeuds avec la plus grande B_Valeur
+        for(i=1; i < cur->nb_enfants; i++){
+            if(B_Value(max) < B_Value(cur->enfant[i])){
+                max = cur->enfant[i];
+            }
+        }
+        // On développe un fils choisi aléatoirement
+        k = 0;
+        coups = coups_possibles(max->etat);
+        while (coups[k] != NULL) {
+            enfant = ajouterEnfant(max, coups[k]);
+            k++;
+        }
+        
+        // On simule le fils choisis
+        do{
+            
+        }while();
+        
+        // calcul du temps
+        toc = clock();
+        temps = (int)(((double)(toc - tic))/CLOCKS_PER_SEC);
+    }while(temps < tempsmax);
     
-    meilleur_coup = coups[ rand()%k ]; // choix aléatoire
+    
+    //meilleur_coup = coups[ rand()%k ]; // choix aléatoire
     
     /*  TODO :
      - supprimer la sélection aléatoire du meilleur coup ci-dessus
@@ -360,7 +408,7 @@ void ordijoue_mcts(Etat * etat, int tempsmax) {
      / fin de l'algorithme  */
     
     // Jouer le meilleur premier coup
-    jouerCoup(etat, meilleur_coup );
+    //jouerCoup(etat, meilleur_coup );
     
     // Penser à libérer la mémoire :
     freeNoeud(racine);
@@ -368,26 +416,20 @@ void ordijoue_mcts(Etat * etat, int tempsmax) {
 }
 
 // B-Valeur d'un noeud
-// etat: etat dont on veut la B-valeur, N: nombre de simulation dans ce noeuds
-double B_Value(Etat * etat){
-    /*int signe = 1;
+// noeuds: noeuds dont on veut la B-valeur
+double B_Value(Noeud * noeuds){
+    int signe = 1;
     // Si c'est au joueur humain de jouer, on part sur du négatif
-    if(etat->joueur == 0){
+    if(noeuds->joueur == 0){
         signe = -1;
     }
-    double moyenne = 0;
+    double moyenne = noeuds->nb_victoires / noeuds->nb_simus;
     // TODO: faire la B_Value en calculant la moyenne et la racine
-    return signe * moyenne + COMPROMIS * sqr()*/
-}
-
-// Retourne le nombre de simulation d'un état
-int Nb_Simulation(Etat * etat){
-    // TODO: trouver un moyen de récup le nombre de simulation d'un état
-    // Stocker lors du MCTS dans un tableau global le nb simulation et l'indice = id du noeud ?
+    return signe * moyenne + COMPROMIS * sqrt(ln(noeuds->parent->nb_simus)/noeuds->nb_simus);
 }
 
 int main(void) {
-    
+    srand(time(NULL));
     Coup * coup;
     FinDePartie fin = NON;
     
@@ -418,11 +460,11 @@ int main(void) {
         } else {
             // tour de l'Ordinateur
             
-            //ordijoue_mcts( etat, TEMPS );
-            int i = 6;
+            ordijoue_mcts( etat, TEMPS );
+            /*int i = 6;
             do {
                 coup = nouveauCoup(i--);
-            } while (!jouerCoup(etat, coup));
+            } while (!jouerCoup(etat, coup));*/
             /*do {
                 coup = demanderCoup();
             } while (!jouerCoup(etat, coup));*/
