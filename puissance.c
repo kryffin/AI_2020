@@ -266,7 +266,6 @@ FinDePartie testFin( Etat * etat ) {
     int i, j, k, n = 0;
     for (i = 0; i < GRILLE_LARGEUR; i++) {
         for(j = 0; j < GRILLE_HAUTEUR; j++) {
-            printf("TEST : %d %d\n", i, j);
             if (etat->grille[i][j] != ' ') {
                 n++; // nb coups joués
                 
@@ -369,14 +368,19 @@ void ordijoue_mcts(Etat * etat, int tempsmax) {
 int main(void) {
     
     Coup * coup;
-    FinDePartie fin;
+    FinDePartie fin = NON;
     
     // initialisation
     Etat * etat = etat_initial();
     
+    etat->joueur = -1;
+    
     // Choisir qui commence :
-    printf("Qui commence (0 : humain, 1 : ordinateur) ? ");
-    scanf("%d", &(etat->joueur) );
+    do {
+        printf("Qui commence (0 : humain, 1 : ordinateur) ? ");
+        scanf("%d", &(etat->joueur));
+        fflush(0);
+    } while (etat->joueur < 0 || etat->joueur > 1);
     
     // boucle de jeu
     
