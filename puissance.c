@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <ctype.h>
 
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
 #define TEMPS 5        // temps de calcul pour un coup avec MCTS (en secondes)
+#define COMPROMIS 2    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
 #define GRILLE_HAUTEUR 6
@@ -24,6 +26,9 @@
  joueur 1 : ordinateur
  
  */
+
+// Variables globales
+int nombreSimulation[][];
 
 // Critères de fin de partie
 typedef enum {NON, MATCHNUL, ORDI_GAGNE, HUMAIN_GAGNE } FinDePartie;
@@ -73,7 +78,7 @@ Etat *etat_initial () {
     return etat;
 }
 
-// Procédure affichant un état de jeu dans la sortie standart
+// Procédure affichant un état de jeu dans la sortie standard
 void afficheJeu (Etat *etat) {
     
     //première ligne (indices des colonnes)
@@ -366,10 +371,29 @@ void ordijoue_mcts(Etat * etat, int tempsmax) {
     free (coups);
 }
 
+// B-Valeur d'un noeud
+// etat: etat dont on veut la B-valeur, N: nombre de simulation dans ce noeuds
+double B_Value(Etat * etat){
+    /*int signe = 1;
+    // Si c'est au joueur humain de jouer, on part sur du négatif
+    if(etat->joueur == 0){
+        signe = -1;
+    }
+    double moyenne = 0;
+    // TODO: faire la B_Value en calculant la moyenne et la racine
+    return signe * moyenne + COMPROMIS * sqr()*/
+}
+
+// Retourne le nombre de simulation d'un état
+int Nb_Simulation(Etat * etat){
+    // TODO: trouver un moyen de récup le nombre de simulation d'un état
+    // Stocker lors du MCTS dans un tableau global le nb simulation et l'indice = id du noeud ?
+}
+
 int main(void) {
     
     Coup * coup;
-    FinDePartie fin;
+    FinDePartie fin = NON;
     
     // initialisation
     Etat * etat = etat_initial();
@@ -378,8 +402,9 @@ int main(void) {
     printf("Qui commence (0 : humain, 1 : ordinateur) ? ");
     scanf("%d", &(etat->joueur) );
     
-    // boucle de jeu
     
+    
+    // boucle de jeu
     while (fin == NON) {
         printf("\n");
         afficheJeu(etat);
