@@ -9,7 +9,7 @@
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
 #define TEMPS 5        // temps de calcul pour un coup avec MCTS (en secondes)
-#define COMPROMIS 0.2f    // Constante c, qui est le compromis entre exploitation et exploration
+#define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
 #define GRILLE_HAUTEUR 6
@@ -23,8 +23,8 @@
 
 /*
  
- joueur 0 : humain
- joueur 1 : ordinateur
+joueur 0 : humain
+joueur 1 : ordinateur
  
  */
 
@@ -306,19 +306,29 @@ FinDePartie testFin( Etat * etat ) {
 
 // B-Valeur d'un noeud
 // noeuds: noeuds dont on veut la B-valeur
-double B_Value(Noeud * noeuds){
+double B_Value(Noeud * noeud){
     //le signe est + au tour de l'ordinateur et - au tour de l'humain
     int signe = 1;
-    if(noeuds->joueur == 0)
+    if(noeud->joueur == 0)
     	signe = -1;
 
     //moyenne des victoires du noeud
-    double moyenne = noeuds->nb_victoires / noeuds->nb_simus;
+    double moyenne;
+    if (noeud->nb_simus == 0)
+    	moyenne = 0;
+    else
+    	moyenne = noeud->nb_victoires / noeud->nb_simus;
 
 	//DEBUG
     //printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
 
-    return (signe * moyenne) + (COMPROMIS * sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus));
+    double res;
+    if (noeud->parent->nb_simus == 0)
+    	res = (signe * moyenne);
+    else
+    	res = (signe * moyenne) + (COMPROMIS * sqrt(log(noeud->parent->nb_simus)/noeud->nb_simus));
+
+    return res;
 }
 	
 //un fils est développé s'il a été simulé au moins une fois
@@ -333,36 +343,6 @@ int tousFilsDeveloppes(Noeud * noeud) {
 	return cpt == noeud->nb_enfants ? 1 : 0;
 }
 
-void developpementAleatoire (Noeud * noeud) {
-	Coup * coupAleatoire;
-
-	//parcours aléatoire jusqu'à une fin de partie
-    while(testFin(noeud->etat) == NON) {
-        //recherche d'un coup aléatoire jouable
-        do {
-            coupAleatoire = nouveauCoup(rand()%7);
-        } while(!coupJouable(noeud->etat, coupAleatoire));
-
-        //création d'un fils dans lequel on joue ce coup
-        jouerCoup(noeud->etat,coupAleatoire);
-    }
-
-    switch (testFin(noeud->etat)) {
-    	case ORDI_GAGNE:
-    		noeud->nb_victoires++;
-    		break;
-
-    	case HUMAIN_GAGNE:
-    		noeud->nb_victoires--;
-    		break;
-
-    	default:
-    		break;
-    }
-
-    noeud->nb_simus++;
-}
-
 void afficherProgres (clock_t temps, clock_t tempsmax) {
 	int progress = (int) (((float)((float)temps / (float)tempsmax)) * 20);
     int i;
@@ -373,62 +353,51 @@ void afficherProgres (clock_t temps, clock_t tempsmax) {
     printf("}\r");
 }
 
+// Retourne 1 si le coup est déjà joue sur noeud, 0 sinon
+int coupJoue (Noeud * noeud, Coup * coup) {
+	printf("j'entre, %u", coup->colonne);
+	fflush(0);
+	int i;
+	for (i = 0; i < noeud->nb_enfants; i++) {
+		if (noeud->enfants[i]->coup->colonne == coup->colonne)
+			return 1;
+	}
+	return 0;
+}
+
+// Retourne 0 si l'état du noeud n'est pas final (la partie n'est pas terminée), 1 sinon
+int estFinale (Noeud * noeud) {
+	return testFin(noeud->etat) == NON ? 0 : 1;
+}
+
 // Calcule et joue un coup de l'ordinateur avec MCTS-UCT
 // en tempsmax secondes
 void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     
+    //calcul du temps restant
     clock_t tic, toc;
     tic = clock();
     clock_t temps;
-    int iter = 0;
+
+    int iter = 0; //nombre d'itérations
     
-    // Coup possible
+    // Coups possible et meilleur coup final
     Coup ** coups;
     Coup * meilleur_coup ;
     
-    // Créer l'arbre de recherche
+    // Création de l'arbre de recherche
     Noeud * racine = nouveauNoeud(NULL, NULL);
    	racine->etat = copieEtat(etat);
-    
-    //DEBUG
-    //printf("Création des premiers noeuds\n");
 
-    // créer les premiers noeuds:
-    coups = coups_possibles(racine->etat);
-    int k = 0;
-    Coup * coupAlea;
-    Noeud * enfant;
+    int i, k, indMax; //i compteur sur les fils, k sur les coups et indMax indice de la plus grande B_value
+    double bMax; //B_value max lors de la recherche de la plus grande B_value
 
-    //initialisation des 7 (max) premiers fils de la racine
-    while (coups[k] != NULL) {
-    	//DEBUG
-    	//printf("\tCréation d'un enfant\n");
+    Noeud * enfant; //enfant à développer
+    Noeud * cur; //noeud courant parcouru
 
-        enfant = ajouterEnfant(racine, coups[k]);
-
-        developpementAleatoire(enfant);
-
-        racine->nb_simus++; //incrémentation manuelle du nombre de simus de la racine pour l'initialisation
-
-		//DEBUG
-        //printf("\tEtat de la partie finie : %d\n", testFin(enfant->etat));
-        //printf("\tB-Valeur : %f\n", B_Value(enfant));
-        //printf("\tN() : %d ; r() : %d ; parent(N()) : %d\n\n", enfant->nb_simus, enfant->nb_victoires, enfant->parent->nb_simus);
-
-
-        k++;
-    }
-
-    //DEBUG
-    //printf("\nAlgo MCTS : \n");
-    
-    int i;
-    Noeud * cur;
-    double bMax;
-    int indMax;
     do{
 
-    	cur = racine;
+    	cur = racine; //on démarre à la racine de l'arbre
 
     	/*
     	1. Sélectionner récursivement à partir de la racine le nœud avec la plus grande
@@ -437,48 +406,88 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     	*/
 
     	//DEBUG
-    	//printf("\n\t1. SELECTION\n");
+    	printf("\n\t1. SELECTION\n");
 
-        //tant que le fils courant a des enfants ET qu'ils ont tous été développés
+        //tant que le fils courant a des enfants et que tous les enfants sont développés
         while (cur->nb_enfants > 0 && tousFilsDeveloppes(cur)) {
         	//DEBUG
-        	//printf("\t\tParcours des fils :\n");
+        	printf("\t\tParcours des fils :\n");
 
         	bMax = B_Value(cur->enfants[0]);
 			indMax = 0;
 
         	//parcours des fils du noeud courant et sélection de la meilleure B-valeur
         	for (i = 0; i < cur->nb_enfants; i++) {
-
         		//DEBUG
-        		//printf("\t\t\tB-valeur (%d) : %f\n", i, B_Value(cur->enfants[i]));
+        		printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
 
     			//sauvegarde de l'indice du noeud ayant la plus grande B-valeur
         		if (B_Value(cur->enfants[i]) > bMax)
         			indMax = i;
         	}
         	//DEBUG
-        	//printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
+        	printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
 
         	cur = cur->enfants[indMax];
+
+        	//DEBUG
+        	printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
         }
 
         /*
         2. Développer un fils choisi aléatoirement parmi les fils non développés
         */
 
+        afficheJeu(cur->etat);
+
         //DEBUG
-    	//printf("\n\t2. DEVELOPPEMENT\n");
+    	printf("\n\t2. DEVELOPPEMENT\n");
+        
+        if (!estFinale(cur)) {
+        	if (cur->nb_enfants < 1) {
+        		//développement des fils du noeud
+	        	coups = coups_possibles(cur->etat);
+	        	k = 0;
 
-    	//développement des fils du noeud choisi
-        k = 0;
-        coups = coups_possibles(cur->etat);
-        while (coups[k] != NULL && coupJouable(cur->etat, coups[k])) {
-        	//DEBUG
-        	//printf("\t\tDeveloppement du coup %d\n", k);
+	        	//DEBUG
+	        	printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
 
-            enfant = ajouterEnfant(cur, coups[k]);
-            k++;
+	        	while (coups[k] != NULL) {
+	        		//DEBUG
+	        		printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
+
+	        		enfant = ajouterEnfant(cur, coups[k]);
+	        		jouerCoup(enfant->etat, coups[k]);
+	        		k++;
+	        	}
+
+	        	//selection d'un enfant au hasard
+    			int r = rand() % cur->nb_enfants;
+    			enfant = cur->enfants[r];
+    			cur = cur->enfants[r];
+
+    			//DEBUG
+        		printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
+        	} else {
+        		//le noeud a déjà des enfants, on en cherche un à développer
+
+        		int nonDev[LARGEUR_MAX]; //tableau des indices des fils non développés
+        		int j = 0;
+        		for (i = 0; i < cur->nb_enfants; i++) {
+        			if (cur->enfants[i]->nb_simus < 1) {
+        				nonDev[j] = i;
+        				j++;
+        			}
+        		}
+
+        		//choix aléatoire d'un fils non développé
+        		int r = rand() % j;
+        		enfant = cur->enfants[nonDev[r]];
+        		cur = cur->enfants[nonDev[r]];
+
+        		//DEBUG
+        		printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
+        	}
         }
         
         /*
@@ -486,83 +495,90 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         */
 
         //DEBUG
-        //printf("\n\t3. SIMULATION\n");
+        printf("\n\t3. SIMULATION\n");
 
-        for (i = 0; i < cur->nb_enfants; i++) {
+        Etat * etatAleatoire = copieEtat(enfant->etat);
+
+		//tant que l'état du jeu de l'enfant est interminé
+	    while(testFin(etatAleatoire) == NON) {
+	        //generation des coups possibles
+	        coups = coups_possibles(etatAleatoire);
+
+	        k = 0;
+	        while (coups[k] != NULL) {
+	        	k++;
+	        }
+
+	        //choix aléatoire d'un coup parmis ceux possible et affectation du coup sur l'état
+	        int r = rand() % k;
+	        jouerCoup(etatAleatoire, coups[r]);
+
+	        //DEBUG
+	        printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
+	    }
+
+	    free(etatAleatoire);
+
+	    //DEBUG
+	    printf("\t\tSimulation terminée\n");
+
+        //DEBUG
+        printf("\n\t4. MISE A JOUR\n");
+
+		//recompense de 1 si l'ordi est gagnant, 0 sinon
+        int recompense = 0;
+        if (testFin(enfant->etat) == ORDI_GAGNE)
+        	recompense = 1;
+
+        //DEBUG
+        printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
+
+        while (cur != NULL) {
         	//DEBUG
-        	//printf("\t\tSimulation du fils %d\n", i);
+        	printf("\t\t\tMise à jour d'un noeud\n");
 
-        	developpementAleatoire(cur->enfants[i]);
+        	cur->nb_simus++;
+        	cur->nb_victoires = cur->nb_victoires + recompense;
+        	cur = cur->parent;
         }
 
-        /*
-        */
-
         //DEBUG
-        //printf("\n\t4. MISE A JOUR\n");
+        printf("\t\tFin de la remontada\n");
         
         //DEBUG
-        //printf("\n\t- GESTION TEMPS\n");
+        printf("\n\t- GESTION TEMPS\n");
         
         // calcul du temps
         toc = clock();
         temps = (toc - tic) / CLOCKS_PER_SEC;
-        iter++;
 
-        //DEBUG
-        //printf("\t\ttemps : %d | temps max : %d\n", temps, tempsmax);
+        iter++;
 
         //DISPLAY?
         afficherProgres(temps, tempsmax);
+
     } while(temps < tempsmax);
 
+    //recherche du meilleur coup à jouer
 	bMax = B_Value(racine->enfants[0]);
 	indMax = 0;
     for (i = 0; i < racine->nb_enfants; i++) {
     	if (B_Value(racine->enfants[i]) > bMax)
     		indMax = i;
     }
-
     meilleur_coup = racine->enfants[indMax]->coup;
 
+    //application du meilleur coup sur le jeu actuel
     jouerCoup(etat, meilleur_coup);
 
     printf("\rItérations : %d       \n", iter);
     
-    
-    //meilleur_coup = coups[ rand()%k ]; // choix aléatoire
-    
-    /*  TODO :
-     - supprimer la sélection aléatoire du meilleur coup ci-dessus
-     - implémenter l'algorithme MCTS-UCT pour déterminer le meilleur coup ci-dessous
-     
-     int iter = 0;
-     
-     do {
-     
-     
-     
-     // à compléter par l'algorithme MCTS-UCT...
-     
-     
-     
-     
-     toc = clock();
-     temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
-     iter ++;
-     } while ( temps < tempsmax );
-     
-     / fin de l'algorithme  */
-    
-    // Jouer le meilleur premier coup
-    //jouerCoup(etat, meilleur_coup );
-    
-    // Penser à libérer la mémoire :
+    //free nécessaires
     freeNoeud(racine);
     free(coups);
 }
 
-int main(void) {
+int main () {
     srand(time(NULL));
     Coup * coup;
     FinDePartie fin = NON;
@@ -590,6 +606,8 @@ int main(void) {
             do {
                 coup = demanderCoup();
             } while (!jouerCoup(etat, coup));
+
+            free(coup);
             
         } else {
             // tour de l'Ordinateur
@@ -600,8 +618,6 @@ int main(void) {
         
         fin = testFin(etat);
     }
-
-    free(coup);
     
     printf("\n");
     afficheJeu(etat);
