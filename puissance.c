@@ -8,8 +8,8 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 5        // temps de calcul pour un coup avec MCTS (en secondes)
-#define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
+#define TEMPS 10        // temps de calcul pour un coup avec MCTS (en secondes)
+#define COMPROMIS 2    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
 #define GRILLE_HAUTEUR 6
@@ -20,6 +20,8 @@
 #define AUTRE_JOUEUR(i) (1-(i))
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) < (b) ? (b) : (a))
+
+int AFFICHAGE = 0;
 
 /*
  
@@ -184,7 +186,6 @@ Coup **coups_possibles (Etat *etat) {
 
 // Definition du type Noeud
 typedef struct NoeudSt {
-    
     int joueur; // joueur qui a joué pour arriver ici
     Coup *coup;   // coup joué par ce joueur pour arriver ici
     
@@ -308,9 +309,9 @@ FinDePartie testFin( Etat * etat ) {
 // noeuds: noeuds dont on veut la B-valeur
 double B_Value(Noeud * noeud){
     //le signe est + au tour de l'ordinateur et - au tour de l'humain
-    int signe = 1;
+    int signe = -1;
     if(noeud->joueur == 0)
-    	signe = -1;
+    	signe = 1;
 
     //moyenne des victoires du noeud
     double moyenne;
@@ -320,7 +321,7 @@ double B_Value(Noeud * noeud){
     	moyenne = noeud->nb_victoires / noeud->nb_simus;
 
 	//DEBUG
-    //printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
+    //if(AFFICHAGE)printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
 
     double res;
     if (noeud->parent->nb_simus == 0)
@@ -406,12 +407,12 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     	*/
 
     	//DEBUG
-    	printf("\n\t1. SELECTION\n");
+    	if(AFFICHAGE)printf("\n\t1. SELECTION\n");
 
         //tant que le fils courant a des enfants et que tous les enfants sont développés
         while (cur->nb_enfants > 0 && tousFilsDeveloppes(cur)) {
         	//DEBUG
-        	printf("\t\tParcours des fils :\n");
+        	if(AFFICHAGE)printf("\t\tParcours des fils :\n");
 
         	bMax = B_Value(cur->enfants[0]);
 			indMax = 0;
@@ -419,29 +420,30 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         	//parcours des fils du noeud courant et sélection de la meilleure B-valeur
         	for (i = 0; i < cur->nb_enfants; i++) {
         		//DEBUG
-        		printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
+        		if(AFFICHAGE)printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
 
     			//sauvegarde de l'indice du noeud ayant la plus grande B-valeur
         		if (B_Value(cur->enfants[i]) > bMax)
         			indMax = i;
         	}
         	//DEBUG
-        	printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
+        	if(AFFICHAGE)printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
 
         	cur = cur->enfants[indMax];
 
         	//DEBUG
-        	printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
+        	if(AFFICHAGE)printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
         }
 
         /*
         2. Développer un fils choisi aléatoirement parmi les fils non développés
         */
 
-        afficheJeu(cur->etat);
+        // DEBUG AFFICHE_ETAT
+        //if(AFFICHAGE)afficheJeu(cur->etat);
 
         //DEBUG
-    	printf("\n\t2. DEVELOPPEMENT\n");
+    	if(AFFICHAGE)printf("\n\t2. DEVELOPPEMENT\n");
         
         if (!estFinale(cur)) {
         	if (cur->nb_enfants < 1) {
@@ -450,11 +452,11 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        	k = 0;
 
 	        	//DEBUG
-	        	printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
+	        	if(AFFICHAGE)printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
 
 	        	while (coups[k] != NULL) {
 	        		//DEBUG
-	        		printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
+	        		if(AFFICHAGE)printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
 
 	        		enfant = ajouterEnfant(cur, coups[k]);
 	        		jouerCoup(enfant->etat, coups[k]);
@@ -467,7 +469,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     			cur = cur->enfants[r];
 
     			//DEBUG
-        		printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
+        		if(AFFICHAGE)printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
         	} else {
         		//le noeud a déjà des enfants, on en cherche un à développer
 
@@ -486,7 +488,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         		cur = cur->enfants[nonDev[r]];
 
         		//DEBUG
-        		printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
+        		if(AFFICHAGE)printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
         	}
         }
         
@@ -495,7 +497,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         */
 
         //DEBUG
-        printf("\n\t3. SIMULATION\n");
+        if(AFFICHAGE)printf("\n\t3. SIMULATION\n");
 
         Etat * etatAleatoire = copieEtat(enfant->etat);
 
@@ -514,14 +516,14 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        jouerCoup(etatAleatoire, coups[r]);
 
 	        //DEBUG
-	        printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
+	        if(AFFICHAGE)printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
 	    }
 
 	    //DEBUG
-	    printf("\t\tSimulation terminée\n");
+	    if(AFFICHAGE)printf("\t\tSimulation terminée\n");
 
         //DEBUG
-        printf("\n\t4. MISE A JOUR\n");
+        if(AFFICHAGE)printf("\n\t4. MISE A JOUR\n");
 
 		//recompense de 1 si l'ordi est gagnant, 0 sinon
         int recompense = 0;
@@ -532,11 +534,11 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 
         
         //DEBUG
-        printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
+       if(AFFICHAGE)printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
 
         while (cur != NULL) {
         	//DEBUG
-        	printf("\t\t\tMise à jour d'un noeud\n");
+        	if(AFFICHAGE)printf("\t\t\tMise à jour d'un noeud\n");
 
         	cur->nb_simus++;
         	cur->nb_victoires = cur->nb_victoires + recompense;
@@ -544,10 +546,10 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         }
 
         //DEBUG
-        printf("\t\tFin de la remontada\n");
+        if(AFFICHAGE)printf("\t\tFin de la remontada\n");
         
         //DEBUG
-        printf("\n\t- GESTION TEMPS\n");
+        if(AFFICHAGE)printf("\n\t- GESTION TEMPS\n");
         
         // calcul du temps
         toc = clock();
@@ -556,7 +558,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         iter++;
 
         //DISPLAY?
-        afficherProgres(temps, tempsmax);
+        if(!AFFICHAGE)afficherProgres(temps, tempsmax);
 
     } while(temps < tempsmax);
 
@@ -579,7 +581,10 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     free(coups);
 }
 
-int main () {
+int main (int argc, char **argv) {
+    if(argc == 2)
+    AFFICHAGE = atoi(argv[1]);
+    
     srand(time(NULL));
     Coup * coup;
     FinDePartie fin = NON;
