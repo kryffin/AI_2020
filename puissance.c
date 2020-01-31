@@ -8,8 +8,8 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 10        // temps de calcul pour un coup avec MCTS (en secondes)
-#define COMPROMIS 2    // Constante c, qui est le compromis entre exploitation et exploration
+#define TEMPS 2        // temps de calcul pour un coup avec MCTS (en secondes)
+#define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
 #define GRILLE_HAUTEUR 6
@@ -118,19 +118,16 @@ Coup *demanderCoup () {
     int i = -1; //init à -1 car si on entre autre chose qu'un entier i restera à -1 et le programme redemandera la colonne à choisir
     printf("Sur quelle colonne voulez-vous jouer votre jeton? ");
     scanf("%d", &i);
-    fflush(0); //permet de vider le buffer du scanf, sinon scanf ne demandera plus notre input
     
     return nouveauCoup(i);
 }
 
 int coupJouable (Etat * etat, Coup * coup) {
     //parcours des lignes pour trouver la première libre, si aucune sur la hauteur de la grille le ocup n'est pas jouable
-    int j;
-    for (j = 0; j < GRILLE_HAUTEUR; j++) {
-        if (etat->grille[coup->colonne][j] == ' ') {
-            return 1;
-        }
-    }
+    if (coup->colonne >= 0 && coup->colonne < 7)
+        for (int j = 0; j < GRILLE_HAUTEUR; j++)
+            if (etat->grille[coup->colonne][j] == ' ')
+                return 1;
     
     return 0;
 }
@@ -165,7 +162,7 @@ int jouerCoup (Etat *etat, Coup *coup) {
 // Retourne une liste de coups possibles à partir d'un etat
 // (tableau de pointeurs de coups se terminant par NULL)
 Coup **coups_possibles (Etat *etat) {
-    //coups sera de la taille : (1+8) * taille(coup)
+    //coups sera de la taille : (1+7) * taille(coup)
     Coup **coups = (Coup **)malloc((1+LARGEUR_MAX) * sizeof(Coup *));
     
     int k = 0, i;
@@ -175,6 +172,8 @@ Coup **coups_possibles (Etat *etat) {
             //si le coup en largeur i est jouable on l'ajoute au tableau des coups jouables
             coups[k] = coup;
             k++;
+        } else {
+            free(coup);
         }
     }
     
@@ -182,7 +181,6 @@ Coup **coups_possibles (Etat *etat) {
     
     return coups;
 }
-
 
 // Definition du type Noeud
 typedef struct NoeudSt {
@@ -354,18 +352,6 @@ void afficherProgres (clock_t temps, clock_t tempsmax) {
     printf("}\r");
 }
 
-// Retourne 1 si le coup est déjà joue sur noeud, 0 sinon
-int coupJoue (Noeud * noeud, Coup * coup) {
-	printf("j'entre, %u", coup->colonne);
-	fflush(0);
-	int i;
-	for (i = 0; i < noeud->nb_enfants; i++) {
-		if (noeud->enfants[i]->coup->colonne == coup->colonne)
-			return 1;
-	}
-	return 0;
-}
-
 // Retourne 0 si l'état du noeud n'est pas final (la partie n'est pas terminée), 1 sinon
 int estFinale (Noeud * noeud) {
 	return testFin(noeud->etat) == NON ? 0 : 1;
@@ -462,6 +448,8 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        		jouerCoup(enfant->etat, coups[k]);
 	        		k++;
 	        	}
+	        	
+	        	free(coups);
 
 	        	//selection d'un enfant au hasard
     			int r = rand() % cur->nb_enfants;
@@ -491,17 +479,17 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         		if(AFFICHAGE)printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
         	}
         }
-        
+                
         /*
         3. Simuler la fin de la partie avec une marche aléatoire (de tous les fils crées?)
         */
 
         //DEBUG
         if(AFFICHAGE)printf("\n\t3. SIMULATION\n");
-
+        
         Etat * etatAleatoire = copieEtat(enfant->etat);
 
-		//tant que l'état du jeu de l'enfant est interminé
+        //tant que l'état du jeu de l'enfant est interminé
 	    while(testFin(etatAleatoire) == NON) {
 	        //generation des coups possibles
 	        coups = coups_possibles(etatAleatoire);
@@ -514,11 +502,19 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        //choix aléatoire d'un coup parmis ceux possible et affectation du coup sur l'état
 	        int r = rand() % k;
 	        jouerCoup(etatAleatoire, coups[r]);
+            
+            k = 0;
+	        while (coups[k] != NULL) {
+                free(coups[k]);
+	        	k++;
+	        }
+	        free(coups);
 
 	        //DEBUG
 	        if(AFFICHAGE)printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
 	    }
-
+	    
+	    
 	    //DEBUG
 	    if(AFFICHAGE)printf("\t\tSimulation terminée\n");
 
@@ -559,7 +555,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 
         //DISPLAY?
         if(!AFFICHAGE)afficherProgres(temps, tempsmax);
-
+                
     } while(temps < tempsmax);
 
     //recherche du meilleur coup à jouer
@@ -578,10 +574,10 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     
     //free nécessaires
     freeNoeud(racine);
-    free(coups);
 }
 
 int main (int argc, char **argv) {
+    
     if(argc == 2)
     AFFICHAGE = atoi(argv[1]);
     
@@ -596,11 +592,12 @@ int main (int argc, char **argv) {
     
     // Choisir qui commence :
     do {
+        
         printf("Qui commence (0 : humain, 1 : ordinateur) ? ");
         scanf("%d", &(etat->joueur));
-        fflush(0);
+        
     } while (etat->joueur < 0 || etat->joueur > 1);
-    
+
     // boucle de jeu
     while (fin == NON) {
         printf("\n");
@@ -608,11 +605,16 @@ int main (int argc, char **argv) {
         
         if ( etat->joueur == 0 ) {
             // tour de l'humain
-            
+            coup = NULL;
             do {
+                
+                if (coup != NULL) free(coup); //free du coup avant d'en redemander un nouveau
                 coup = demanderCoup();
-            } while (!jouerCoup(etat, coup));
-
+                
+            } while (!coupJouable(etat, coup));
+            
+            jouerCoup(etat, coup);
+            
             free(coup);
             
         } else {
@@ -627,6 +629,7 @@ int main (int argc, char **argv) {
     
     printf("\n");
     afficheJeu(etat);
+    free(etat);
     
     if ( fin == ORDI_GAGNE )
         printf( "** L'ordinateur a gagné **\n");
