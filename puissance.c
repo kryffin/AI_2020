@@ -517,8 +517,6 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
 	    }
 
-	    free(etatAleatoire);
-
 	    //DEBUG
 	    printf("\t\tSimulation terminée\n");
 
@@ -527,9 +525,12 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 
 		//recompense de 1 si l'ordi est gagnant, 0 sinon
         int recompense = 0;
-        if (testFin(enfant->etat) == ORDI_GAGNE)
+        if (testFin(etatAleatoire) == ORDI_GAGNE)
         	recompense = 1;
 
+	    free(etatAleatoire);
+
+        
         //DEBUG
         printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
 
