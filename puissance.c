@@ -8,7 +8,7 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 2        // temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 10        // temps de calcul pour un coup avec MCTS (en secondes)
 #define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
@@ -135,7 +135,7 @@ int coupJouable (Etat * etat, Coup * coup) {
 // Modifier l'état en jouant un coup
 // retourne 0 si le coup n'est pas possible
 int jouerCoup (Etat *etat, Coup *coup) {
-    
+
     // TODO: à compléter
     
     /* par exemple : */
@@ -156,6 +156,33 @@ int jouerCoup (Etat *etat, Coup *coup) {
         etat->joueur = AUTRE_JOUEUR(etat->joueur);
         
         return 1; //le coup est jouable
+    }
+}
+
+Etat* jouerCoupTest (Etat *etat, Coup *coup) {
+
+    // TODO: à compléter
+
+    /* par exemple : */
+    if (etat->grille[coup->colonne][GRILLE_HAUTEUR-1] != ' ') {
+        return NULL; //si l'emplacement le plus haut d'une colonne est déjà pris on ne peux pas jouer dans cette colonne
+    } else {
+        int j;
+
+        //parcours des lignes pour trouver la première libre
+        for (j = 0; j < GRILLE_HAUTEUR; j++) {
+            if (etat->grille[coup->colonne][j] == ' ') {
+                etat->grille[coup->colonne][j] = etat->joueur ? 'O' : 'X'; //on met un jeton à l'emplacement libre le plus bas de la colonne demandée O : humain; X : machine
+                break;
+            }
+        }
+
+        // à l'autre joueur de jouer
+        printf("avant: %d ",etat->joueur);
+        etat->joueur = AUTRE_JOUEUR(etat->joueur);
+        printf("après: %d ",etat->joueur);
+        afficheJeu(etat);
+        return etat; //le coup est jouable
     }
 }
 
@@ -268,14 +295,14 @@ FinDePartie testFin( Etat * etat ) {
                 
                 // lignes
                 k = 0;
-                while (k < SUITE_GAGNANTE && etat->grille[i+k][j] == etat->grille[i][j])
+                while (k < SUITE_GAGNANTE && i+k < GRILLE_LARGEUR && etat->grille[i+k][j] == etat->grille[i][j])
                     k++;
                 if (k == SUITE_GAGNANTE)
                     return etat->grille[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
                 
                 // colonnes
                 k = 0;
-                while (k < SUITE_GAGNANTE && etat->grille[i][j+k] == etat->grille[i][j])
+                while (k < SUITE_GAGNANTE && j+k < GRILLE_HAUTEUR && etat->grille[i][j+k] == etat->grille[i][j])
                     k++;
                 if (k == SUITE_GAGNANTE)
                     return etat->grille[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
@@ -576,12 +603,56 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     freeNoeud(racine);
 }
 
+void creerTestEtat(){
+    FILE* fichier = NULL;
+    Etat * etat = etat_initial();
+    etat->joueur = -1;
+    fichier = fopen("test.txt", "r+");
+    Coup *coup;
+    int cpt = 0;
+    if (fichier != NULL){
+        char col = NULL;
+        while(col != EOF){
+            col = fgetc(fichier);
+            cpt++;
+        }
+        int tab[cpt];
+        cpt = 0;
+        rewind(fichier);
+        col = NULL;
+        while(col != EOF){
+            col = fgetc(fichier);
+            int col1 = atoi(&col);
+            tab[cpt] = col1;
+            cpt++;
+        }
+        fclose(fichier);
+        int cpt1 = 0;
+        while(cpt1 < cpt-1){
+            int col1 = tab[cpt1];
+            printf("%d \n",col1);
+            coup = nouveauCoup(col1);
+            //etat->joueur = AUTRE_JOUEUR(etat->joueur);
+            jouerCoupTest(etat,coup);
+            cpt1++;
+        }
+        afficheJeu(etat);
+        FinDePartie fin = testFin(etat);
+        if ( fin == ORDI_GAGNE )
+            printf( "** L'ordinateur a gagné **\n");
+        else if ( fin == MATCHNUL )
+            printf(" Match nul !  \n");
+        else
+            printf( "** BRAVO, l'ordinateur a perdu  **\n");
+    }
+}
+
 int main (int argc, char **argv) {
     
     if(argc == 2)
     AFFICHAGE = atoi(argv[1]);
     
-    srand(time(NULL));
+    /*srand(time(NULL));
     Coup * coup;
     FinDePartie fin = NON;
     
@@ -636,6 +707,8 @@ int main (int argc, char **argv) {
     else if ( fin == MATCHNUL )
         printf(" Match nul !  \n");
     else
-        printf( "** BRAVO, l'ordinateur a perdu  **\n");
+        printf( "** BRAVO, l'ordinateur a perdu  **\n");*/
+
+    creerTestEtat();
     return 0;
 }
