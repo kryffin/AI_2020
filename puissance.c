@@ -83,6 +83,8 @@ void afficheJeu (Etat *etat) {
     
     //première ligne (indices des colonnes)
     int i,j;
+
+    printf("Joueur : %d\n", etat->joueur);
     
     //boucle d'affichage de la grille
     for (j = GRILLE_HAUTEUR-1; j >= 0; j--) {
@@ -346,7 +348,7 @@ double B_Value(Noeud * noeud){
     	moyenne = noeud->nb_victoires / noeud->nb_simus;
 
 	//DEBUG
-    //if(AFFICHAGE)printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
+    //if(AFFICHAGE) printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
 
     double res;
     if (noeud->parent->nb_simus == 0)
@@ -420,12 +422,12 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     	*/
 
     	//DEBUG
-    	if(AFFICHAGE)printf("\n\t1. SELECTION\n");
+    	if(AFFICHAGE) printf("\n\t1. SELECTION\n");
 
         //tant que le fils courant a des enfants et que tous les enfants sont développés
         while (cur->nb_enfants > 0 && tousFilsDeveloppes(cur)) {
         	//DEBUG
-        	if(AFFICHAGE)printf("\t\tParcours des fils :\n");
+        	if(AFFICHAGE) printf("\t\tParcours des fils :\n");
 
         	bMax = B_Value(cur->enfants[0]);
 			indMax = 0;
@@ -433,19 +435,19 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         	//parcours des fils du noeud courant et sélection de la meilleure B-valeur
         	for (i = 0; i < cur->nb_enfants; i++) {
         		//DEBUG
-        		if(AFFICHAGE)printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
+        		if(AFFICHAGE) printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
 
     			//sauvegarde de l'indice du noeud ayant la plus grande B-valeur
         		if (B_Value(cur->enfants[i]) > bMax)
         			indMax = i;
         	}
         	//DEBUG
-        	if(AFFICHAGE)printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
+        	if(AFFICHAGE) printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
 
         	cur = cur->enfants[indMax];
 
         	//DEBUG
-        	if(AFFICHAGE)printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
+        	if(AFFICHAGE) printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
         }
 
         /*
@@ -456,7 +458,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         //if(AFFICHAGE)afficheJeu(cur->etat);
 
         //DEBUG
-    	if(AFFICHAGE)printf("\n\t2. DEVELOPPEMENT\n");
+    	if(AFFICHAGE) printf("\n\t2. DEVELOPPEMENT\n");
         
         if (!estFinale(cur)) {
         	if (cur->nb_enfants < 1) {
@@ -465,11 +467,11 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        	k = 0;
 
 	        	//DEBUG
-	        	if(AFFICHAGE)printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
+	        	if(AFFICHAGE) printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
 
 	        	while (coups[k] != NULL) {
 	        		//DEBUG
-	        		if(AFFICHAGE)printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
+	        		if(AFFICHAGE) printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
 
 	        		enfant = ajouterEnfant(cur, coups[k]);
 	        		jouerCoup(enfant->etat, coups[k]);
@@ -484,7 +486,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     			cur = cur->enfants[r];
 
     			//DEBUG
-        		if(AFFICHAGE)printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
+        		if(AFFICHAGE) printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
         	} else {
         		//le noeud a déjà des enfants, on en cherche un à développer
 
@@ -503,7 +505,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         		cur = cur->enfants[nonDev[r]];
 
         		//DEBUG
-        		if(AFFICHAGE)printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
+        		if(AFFICHAGE) printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
         	}
         }
                 
@@ -512,7 +514,7 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         */
 
         //DEBUG
-        if(AFFICHAGE)printf("\n\t3. SIMULATION\n");
+        if(AFFICHAGE) printf("\n\t3. SIMULATION\n");
         
         Etat * etatAleatoire = copieEtat(enfant->etat);
 
@@ -526,10 +528,14 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        	k++;
 	        }
 
+	        if(AFFICHAGE) printf("\t\t\tCoup à jouer... (joueur : %d)\n", etatAleatoire->joueur);
+
 	        //choix aléatoire d'un coup parmis ceux possible et affectation du coup sur l'état
 	        int r = rand() % k;
 	        jouerCoup(etatAleatoire, coups[r]);
-            
+
+	        if(AFFICHAGE) printf("\t\t\tCoup joué (joueur : %d)\n", etatAleatoire->joueur);
+
             k = 0;
 	        while (coups[k] != NULL) {
                 free(coups[k]);
@@ -538,15 +544,15 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 	        free(coups);
 
 	        //DEBUG
-	        if(AFFICHAGE)printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
+	        if(AFFICHAGE) printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
 	    }
 	    
 	    
 	    //DEBUG
-	    if(AFFICHAGE)printf("\t\tSimulation terminée\n");
+	    if(AFFICHAGE) printf("\t\tSimulation terminée\n");
 
         //DEBUG
-        if(AFFICHAGE)printf("\n\t4. MISE A JOUR\n");
+        if(AFFICHAGE) printf("\n\t4. MISE A JOUR\n");
 
 		//recompense de 1 si l'ordi est gagnant, 0 sinon
         int recompense = 0;
@@ -557,11 +563,11 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
 
         
         //DEBUG
-       if(AFFICHAGE)printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
+       if(AFFICHAGE) printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
 
         while (cur != NULL) {
         	//DEBUG
-        	if(AFFICHAGE)printf("\t\t\tMise à jour d'un noeud\n");
+        	if(AFFICHAGE) printf("\t\t\tMise à jour d'un noeud\n");
 
         	cur->nb_simus++;
         	cur->nb_victoires = cur->nb_victoires + recompense;
@@ -569,10 +575,10 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
         }
 
         //DEBUG
-        if(AFFICHAGE)printf("\t\tFin de la remontada\n");
+        if(AFFICHAGE) printf("\t\tFin de la remontada\n");
         
         //DEBUG
-        if(AFFICHAGE)printf("\n\t- GESTION TEMPS\n");
+        if(AFFICHAGE) printf("\n\t- GESTION TEMPS\n");
         
         // calcul du temps
         toc = clock();
@@ -603,11 +609,11 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
     freeNoeud(racine);
 }
 
-void creerTestEtat(){
+void creerTestEtat (char * filename){
     FILE* fichier = NULL;
     Etat * etat = etat_initial();
-    etat->joueur = -1;
-    fichier = fopen("test.txt", "r+");
+    etat->joueur = 0;
+    fichier = fopen(filename, "r+");
     Coup *coup;
     int cpt = 0;
     if (fichier != NULL){
@@ -642,17 +648,29 @@ void creerTestEtat(){
             printf( "** L'ordinateur a gagné **\n");
         else if ( fin == MATCHNUL )
             printf(" Match nul !  \n");
+        else if ( fin == NON )
+            printf( "PARTIE PAS FINIE\n");
         else
-            printf( "** BRAVO, l'ordinateur a perdu  **\n");
+        	printf( "** BRAVO, l'ordinateur a perdu  **\n");
     }
 }
 
 int main (int argc, char **argv) {
     
-    if(argc == 2)
-    AFFICHAGE = atoi(argv[1]);
+    if (argc == 3) {
+    	// si on fourni un troisième argument avec le nom du fichier test, on exécute le test et rien d'autre
+    	creerTestEtat("test.txt");
+	    return 0;
+    }
+
+    if(argc == 2) {
+    	// si on fourni un deuxième argument avec 1, on enable l'affichage
+	    AFFICHAGE = atoi(argv[1]);
+    }
     
-    /*srand(time(NULL));
+    // sinon on exécute le programme sans affichage supplémentaires
+    
+    srand(time(NULL));
     Coup * coup;
     FinDePartie fin = NON;
     
@@ -707,8 +725,7 @@ int main (int argc, char **argv) {
     else if ( fin == MATCHNUL )
         printf(" Match nul !  \n");
     else
-        printf( "** BRAVO, l'ordinateur a perdu  **\n");*/
+        printf( "** BRAVO, l'ordinateur a perdu  **\n");
 
-    creerTestEtat();
     return 0;
 }
