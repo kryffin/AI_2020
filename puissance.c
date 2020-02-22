@@ -628,6 +628,13 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     	meilleur_coup = racine->enfants[indMax]->coup;
     }
 
+    // choix d'un coup gagnant s'il y en a un
+    for (i = 0; i < racine->nb_enfants; i++) {
+    	if (testFin(racine->enfants[i]->etat) == ORDI_GAGNE) {
+    		meilleur_coup = racine->enfants[i]->coup;
+    	}
+    }
+
     //application du meilleur coup sur le jeu actuel
     jouerCoup(etat, meilleur_coup);
 
