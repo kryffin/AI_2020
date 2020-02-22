@@ -1,0 +1,23 @@
+1.Affichez à chaque coup de l’ordinateur, le nombre de simulations réalisées pour calculer ce coup et une estimation de la probabilité de victoire pour l’ordinateur.
+
+-> Fait, manque plus que l'estimation (comment faire ?)
+
+2.Testez différentes limites de temps pour l’ordinateur et comparez les résultats obtenus. A partir de quel temps de calcul l’ordinateur vous bat à tous les coups ?
+
+-> Il fait toujours de la merde (en tout cas jusque 60s de temps de calcul il fait encore de la merde)
+
+3.Implémentez l’amélioration des simulations consistant à toujours choisir un coup gagnant lorsque cela est possible. Comparez la qualité de jeu de cette nouvelle version avec la précé- dente et expliquez à quoi cela est dû.
+
+-> Todo
+
+4.Si vous travaillez en C, quelle est l’utilité ici de compiler avec gcc -O3 plutôt qu’avec les options par défaut ? Donnez des exemples illustratifs.
+
+-> L'option -03 permet d'utiliser toutes les optimizations d'exécution et de compilation supportés par gcc. Cela nous permettra d'avoir une IA qui ira parcourir l'arbre des états de jeu bien plus profondément que sans l'optimisation, et on aura donc, supposément, une meilleure IA pour un même temps de calcul. (à élaborer j'imagine)
+
+5.Comparez les critères "max" et "robuste" pour choisir le coup à jouer en fin d’algorithme. Conduisent-ils souvent à des coups différents ? Lequel paraît donner la meilleure perfor- mance ?
+
+-> Ils font des coups différents, max paraît avoir la meilleure performance (à vérifier)
+
+6.Donnez une estimation du temps de calcul nécessaire pour jouer le premier coup avec l’algorithme Minimax (sans alpha-beta ni limitation de profondeur).
+
+-> Jsp

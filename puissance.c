@@ -4,6 +4,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <limits.h>
+#include <float.h>
 
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
@@ -388,7 +389,7 @@ int estFinale (Noeud * noeud) {
 
 // Calcule et joue un coup de l'ordinateur avec MCTS-UCT
 // en tempsmax secondes
-void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
+void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     
     //calcul du temps restant
     clock_t tic, toc;
@@ -591,14 +592,41 @@ void ordijoue_mcts(Etat * etat, clock_t tempsmax) {
                 
     } while(temps < tempsmax);
 
-    //recherche du meilleur coup à jouer
+    /*
+    //recherche du meilleur coup à jouer - critère maximisation de la B-valeur
 	bMax = B_Value(racine->enfants[0]);
 	indMax = 0;
-    for (i = 0; i < racine->nb_enfants; i++) {
+    for (i = 1; i < racine->nb_enfants; i++) {
     	if (B_Value(racine->enfants[i]) > bMax)
     		indMax = i;
     }
-    meilleur_coup = racine->enfants[indMax]->coup;
+    meilleur_coup = racine->enfants[indMax]->coup;*/
+
+    // recherche du meilleur coup à jouer
+    if (critere) {
+    	// critère Robuste - maximisation du nombre de simulations
+    	int nbSimusMax = INT_MIN;
+    	indMax = -1;
+    	for (i = 0; i < racine->nb_enfants; i++) {
+    		if (racine->enfants[i]->nb_simus > nbSimusMax) {
+    			indMax = i;
+    			nbSimusMax = racine->enfants[i]->nb_simus;
+    		}
+    	}
+    	meilleur_coup = racine->enfants[indMax]->coup;
+    } else {
+    	// critère Max - maximisation de la récompense
+    	double recompenseMax = -DBL_MAX;
+    	indMax = -1;
+    	for (i = 0; i < racine->nb_enfants; i++) {
+			double recompense = (racine->enfants[i]->nb_simus == 0) ? 0. : (double)racine->enfants[i]->nb_victoires / (double)racine->enfants[i]->nb_simus;
+    		if (recompense > recompenseMax) {
+    			indMax = i;
+    			recompenseMax = recompense;
+    		}
+    	}
+    	meilleur_coup = racine->enfants[indMax]->coup;
+    }
 
     //application du meilleur coup sur le jeu actuel
     jouerCoup(etat, meilleur_coup);
@@ -673,7 +701,16 @@ int main (int argc, char **argv) {
     srand(time(NULL));
     Coup * coup;
     FinDePartie fin = NON;
-    
+    int critere = -1;
+
+    // Choisir la stratégie de l'IA (robuste ou max) :
+    do {
+        
+        printf("Quel critère d'IA utiliser ( 0 : Max, 1 : Robuste ) ? ");
+        scanf("%d", &critere);
+        
+    } while (critere < 0 || critere > 1);
+
     // initialisation
     Etat * etat = etat_initial();
     
@@ -709,7 +746,7 @@ int main (int argc, char **argv) {
         } else {
             // tour de l'Ordinateur
             
-            ordijoue_mcts( etat, TEMPS );
+            ordijoue_mcts( etat, critere, TEMPS );
              
         }
         
