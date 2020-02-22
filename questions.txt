@@ -8,7 +8,7 @@
 
 3.Implémentez l’amélioration des simulations consistant à toujours choisir un coup gagnant lorsque cela est possible. Comparez la qualité de jeu de cette nouvelle version avec la précé- dente et expliquez à quoi cela est dû.
 
--> Todo
+-> Done, faut juste tester
 
 4.Si vous travaillez en C, quelle est l’utilité ici de compiler avec gcc -O3 plutôt qu’avec les options par défaut ? Donnez des exemples illustratifs.
 
