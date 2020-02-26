@@ -659,6 +659,8 @@ Etat* creerTestEtat (char * filename){
         else
         	printf( "** BRAVO, l'ordinateur a perdu  **\n");
         return etat;
+    } else {
+    	return etat_initial();
     }
 }
 
@@ -716,7 +718,7 @@ int main (int argc, char **argv) {
 
     if(argc == 2) {
     	// si on fourni un deuxième argument avec 1, on active les affichages de DEBUG
-	    atoi(argv[1]) == 1 ? DEBUG = 1 : DEBUG = 0;
+	    atoi(argv[1]) == 1 ? (DEBUG = 1) : (DEBUG = 0);
     }
         
     srand(time(NULL)); //reset du pseudo aléatoire
