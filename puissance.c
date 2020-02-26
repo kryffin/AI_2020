@@ -7,28 +7,23 @@
 #include <float.h>
 
 // Paramètres du jeu
-#define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
+#define LARGEUR_MAX 7        	// nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 5        // temps de calcul pour un coup avec MCTS (en secondes)
-#define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
+#define TEMPS 5        		  	// temps de calcul pour un coup avec MCTS (en secondes)
+#define COMPROMIS sqrt(2)    	// Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
 #define GRILLE_HAUTEUR 6
 
 #define SUITE_GAGNANTE 4
 
-// macros
 #define AUTRE_JOUEUR(i) (1-(i))
-#define min(a, b)       ((a) < (b) ? (a) : (b))
-#define max(a, b)       ((a) < (b) ? (b) : (a))
 
-int AFFICHAGE = 0;
+int DEBUG = 0;
 
 /*
- 
-joueur 0 : humain
-joueur 1 : ordinateur
- 
+	joueur 0 : humain
+	joueur 1 : ordinateur
  */
 
 // Critères de fin de partie
@@ -37,17 +32,16 @@ typedef enum {NON, MATCHNUL, ORDI_GAGNE, HUMAIN_GAGNE } FinDePartie;
 // Definition d'un état du jeu
 typedef struct EtatSt {
     
-    int joueur; // à qui de jouer ?
+    int joueur; //joueur courant
     
-    /* par exemple, pour morpion: */
-    char grille[GRILLE_LARGEUR][GRILLE_HAUTEUR];
+    char grille[GRILLE_LARGEUR][GRILLE_HAUTEUR]; //grille de jeu
     
 } Etat;
 
 // Definition d'un coup à jouer
 typedef struct CoupSt {
     
-    int colonne;
+    int colonne; //colonne dans laquelle jouer
     
 } Coup;
 
@@ -81,11 +75,8 @@ Etat *etat_initial () {
 
 // Procédure affichant un état de jeu dans la sortie standard
 void afficheJeu (Etat *etat) {
-    
-    //première ligne (indices des colonnes)
     int i,j;
     
-    //boucle d'affichage de la grille
     for (j = GRILLE_HAUTEUR-1; j >= 0; j--) {
         for(i = 0; i < GRILLE_LARGEUR; i++) {
             printf(" %c |", etat->grille[i][j]);
@@ -95,27 +86,22 @@ void afficheJeu (Etat *etat) {
     
     for (i = 0; i < GRILLE_LARGEUR; i++)
         printf(" %d |", i);
-    printf("\b \n\n");
-    
+
+    printf("\b \n\n");   
 }
 
-
-// TODO: adapter la liste de paramètres au jeu
+// Créé une nouveau coup à partir de la colonne dans laquelle jouer
 Coup *nouveauCoup (int i) {
     Coup *coup = (Coup *)malloc(sizeof(Coup)); //nouveau coup
-    
-    // TODO: à compléter avec la création d'un nouveau coup
-    
-    /* par exemple : */
+        
     coup->colonne = i;
     
     return coup;
 }
 
-// Demander à l'humain quel coup jouer
+// Demander quel coup jouer
 Coup *demanderCoup () {
     
-    /* par exemple : */
     int i = -1; //init à -1 car si on entre autre chose qu'un entier i restera à -1 et le programme redemandera la colonne à choisir
     printf("Sur quelle colonne voulez-vous jouer votre jeton? ");
     scanf("%d", &i);
@@ -123,8 +109,9 @@ Coup *demanderCoup () {
     return nouveauCoup(i);
 }
 
+// Retourne 1 si le coup est jouable dans l'état, 0 sinon
 int coupJouable (Etat * etat, Coup * coup) {
-    //parcours des lignes pour trouver la première libre, si aucune sur la hauteur de la grille le ocup n'est pas jouable
+    //parcours des lignes pour trouver la première libre, si aucune sur la hauteur de la grille le coup n'est pas jouable
     if (coup->colonne >= 0 && coup->colonne < 7)
         for (int j = 0; j < GRILLE_HAUTEUR; j++)
             if (etat->grille[coup->colonne][j] == ' ')
@@ -135,31 +122,22 @@ int coupJouable (Etat * etat, Coup * coup) {
 
 // Modifier l'état en jouant un coup
 // retourne 0 si le coup n'est pas possible
-int jouerCoup (Etat *etat, Coup *coup) {
-
-    // TODO: à compléter
+void jouerCoup (Etat *etat, Coup *coup) {
+	int j;
     
-    /* par exemple : */
-    if (etat->grille[coup->colonne][GRILLE_HAUTEUR-1] != ' ') {
-        return 0; //si l'emplacement le plus haut d'une colonne est déjà pris on ne peux pas jouer dans cette colonne
-    } else {
-        int j;
-        
-        //parcours des lignes pour trouver la première libre
-        for (j = 0; j < GRILLE_HAUTEUR; j++) {
-            if (etat->grille[coup->colonne][j] == ' ') {
-                etat->grille[coup->colonne][j] = etat->joueur ? 'O' : 'X'; //on met un jeton à l'emplacement libre le plus bas de la colonne demandée O : humain; X : machine
-                break;
-            }
+    //parcours des lignes pour trouver la première libre et y placer le jeton
+    for (j = 0; j < GRILLE_HAUTEUR; j++) {
+        if (etat->grille[coup->colonne][j] == ' ') {
+            etat->grille[coup->colonne][j] = etat->joueur ? 'O' : 'X';
+            break;
         }
-        
-        // à l'autre joueur de jouer
-        etat->joueur = AUTRE_JOUEUR(etat->joueur);
-        
-        return 1; //le coup est jouable
     }
+    
+    //changement du joueur
+    etat->joueur = AUTRE_JOUEUR(etat->joueur);
 }
 
+// TO REMOVE
 Etat* jouerCoupTest (Etat *etat, Coup *coup) {
 
     // TODO: à compléter
@@ -190,14 +168,14 @@ Etat* jouerCoupTest (Etat *etat, Coup *coup) {
 // Retourne une liste de coups possibles à partir d'un etat
 // (tableau de pointeurs de coups se terminant par NULL)
 Coup **coups_possibles (Etat *etat) {
-    //coups sera de la taille : (1+7) * taille(coup)
+	//liste des coups (7 coups et un NULL)
     Coup **coups = (Coup **)malloc((1+LARGEUR_MAX) * sizeof(Coup *));
     
     int k = 0, i;
     for(i = 0; i < GRILLE_LARGEUR; i++) {
         Coup *coup = nouveauCoup(i);
         if (coupJouable(etat, coup)) {
-            //si le coup en largeur i est jouable on l'ajoute au tableau des coups jouables
+            //si le coup en colonne i est jouable on l'ajoute à la liste des coups jouables
             coups[k] = coup;
             k++;
         } else {
@@ -213,17 +191,16 @@ Coup **coups_possibles (Etat *etat) {
 // Definition du type Noeud
 typedef struct NoeudSt {
     int joueur; // joueur qui a joué pour arriver ici
-    Coup *coup;   // coup joué par ce joueur pour arriver ici
+    Coup *coup; // coup joué par ce joueur pour arriver ici
     
     Etat *etat; // etat du jeu
     
     struct NoeudSt *parent; // noeud parent
     struct NoeudSt *enfants[LARGEUR_MAX]; // liste d'enfants : chaque enfant correspond à un coup possible
-    int nb_enfants;    // nb d'enfants présents dans la liste
+    int nb_enfants; // nb d'enfants présents dans la liste
     
-    // POUR MCTS:
-    int nb_victoires;
-    int nb_simus;
+    int nb_victoires; // nb de victoires passant par ce noeud
+    int nb_simus; // nb de simulations passant par ce noeud
     
 } Noeud;
 
@@ -235,7 +212,7 @@ Noeud *nouveauNoeud (Noeud *parent, Coup *coup) {
     
     if (parent != NULL && coup != NULL) {
         noeud->etat = copieEtat(parent->etat);
-        jouerCoup(noeud->etat, coup); //modification de l'état du noeud en l'état modifié par le coup à jouer
+        jouerCoup(noeud->etat, coup); //application du coup sur le noeud
         noeud->coup = coup;
         noeud->joueur = AUTRE_JOUEUR(parent->joueur);
     } else {
@@ -251,7 +228,6 @@ Noeud *nouveauNoeud (Noeud *parent, Coup *coup) {
     noeud->nb_victoires = 0;
     noeud->nb_simus = 0;
     
-    
     return noeud;
 }
 
@@ -264,6 +240,7 @@ Noeud *ajouterEnfant(Noeud *parent, Coup *coup) {
     return enfant;
 }
 
+// Libère l'espace mémoire allouée pour un noeud et ses fils
 void freeNoeud (Noeud *noeud) {
     if (noeud->etat != NULL)
         free(noeud->etat);
@@ -282,10 +259,6 @@ void freeNoeud (Noeud *noeud) {
 // Test si l'état est un état terminal
 // et retourne NON, MATCHNUL, ORDI_GAGNE ou HUMAIN_GAGNE
 FinDePartie testFin( Etat * etat ) {
-    
-    // TODO...
-    
-    /* par exemple    */
     
     // tester si un joueur a gagné
     int i, j, k, n = 0;
@@ -335,30 +308,19 @@ FinDePartie testFin( Etat * etat ) {
 // noeuds: noeuds dont on veut la B-valeur
 double B_Value(Noeud * noeud){
     //le signe est + au tour de l'ordinateur et - au tour de l'humain
-    int signe = -1;
+    int signe = 1;
     if(noeud->joueur == 0)
-    	signe = 1;
+    	signe = -1;
 
     //moyenne des victoires du noeud
     double moyenne;
-    if (noeud->nb_simus == 0)
-    	moyenne = 0;
-    else
-    	moyenne = (double)noeud->nb_victoires / (double)noeud->nb_simus;
+	moyenne = (double)noeud->nb_victoires / (double)noeud->nb_simus;
 
-	//DEBUG
-    //if(AFFICHAGE) printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
-
-    double res;
-    if (noeud->parent->nb_simus == 0)
-    	res = (signe * moyenne);
-    else
-    	res = (signe * moyenne) + (COMPROMIS * sqrt(log((double)noeud->parent->nb_simus)/(double)noeud->nb_simus));
-
-    return res;
+    return (signe * moyenne) + (COMPROMIS * sqrt(log(noeud->parent->nb_simus)/noeud->nb_simus));
 }
 	
-//un fils est développé s'il a été simulé au moins une fois
+// Retourne 1 si tous les fils du noeud sont développés, 0 sinon
+// (un fils développé est un fils ayant au moins une simulation)
 int tousFilsDeveloppes(Noeud * noeud) {
 	int i, cpt = 0;
 	for (i = 0; i < noeud->nb_enfants; i++) {
@@ -370,6 +332,7 @@ int tousFilsDeveloppes(Noeud * noeud) {
 	return cpt == noeud->nb_enfants ? 1 : 0;
 }
 
+// Affiche le progrès du mcts en temps réel
 void afficherProgres (clock_t temps, clock_t tempsmax) {
 	int progress = (int) (((float)((float)temps / (float)tempsmax)) * 20);
     int i;
@@ -380,7 +343,8 @@ void afficherProgres (clock_t temps, clock_t tempsmax) {
     printf("}\r");
 }
 
-// Retourne 0 si l'état du noeud n'est pas final (la partie n'est pas terminée), 1 sinon
+// Retourne 0 si l'état du noeud n'est pas final, 1 sinon
+// (un état final est un état où la partie est terminée)
 int estFinale (Noeud * noeud) {
 	return testFin(noeud->etat) == NON ? 0 : 1;
 }
@@ -421,20 +385,22 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     	*/
 
     	//DEBUG
-    	if(AFFICHAGE) printf("\n\t1. SELECTION\n");
+    	if(DEBUG) printf("\n\t1. SELECTION\n");
 
         //tant que le fils courant a des enfants et que tous les enfants sont développés
         while (cur->nb_enfants > 0 && tousFilsDeveloppes(cur)) {
+
         	//DEBUG
-        	if(AFFICHAGE) printf("\t\tParcours des fils :\n");
+        	if(DEBUG) printf("\t\tParcours des fils :\n");
 
         	bMax = B_Value(cur->enfants[0]);
 			indMax = 0;
 
         	//parcours des fils du noeud courant et sélection de la meilleure B-valeur
         	for (i = 0; i < cur->nb_enfants; i++) {
+
         		//DEBUG
-        		if(AFFICHAGE) printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
+        		if(DEBUG) printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
 
     			//sauvegarde de l'indice du noeud ayant la plus grande B-valeur
         		if (B_Value(cur->enfants[i]) > bMax){
@@ -442,13 +408,14 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
                     bMax = B_Value(cur->enfants[i]);
                 }
         	}
+
         	//DEBUG
-        	if(AFFICHAGE) printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
+        	if(DEBUG) printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
 
         	cur = cur->enfants[indMax];
 
         	//DEBUG
-        	if(AFFICHAGE) printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
+        	if(DEBUG) printf("\t\tNouveau cur -> nb_enfants : %u, nb_simus : %u\n", cur->nb_enfants, cur->nb_simus);
         }
 
         /*
@@ -456,10 +423,10 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
         */
 
         // DEBUG AFFICHE_ETAT
-        //if(AFFICHAGE)afficheJeu(cur->etat);
+        //if(DEBUG)afficheJeu(cur->etat);
 
         //DEBUG
-    	if(AFFICHAGE) printf("\n\t2. DEVELOPPEMENT\n");
+    	if(DEBUG) printf("\n\t2. DEVELOPPEMENT\n");
         
         if (!estFinale(cur)) {
         	if (cur->nb_enfants < 1) {
@@ -468,14 +435,14 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	        	k = 0;
 
 	        	//DEBUG
-	        	if(AFFICHAGE) printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
+	        	if(DEBUG) printf("\t\tDéveloppement des fils du noeud (le noeud n'a pas encore de fils)\n");
 
 	        	while (coups[k] != NULL) {
 	        		//DEBUG
-	        		if(AFFICHAGE) printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
+	        		if(DEBUG) printf("\t\t\tDéveloppement du fils %u du noeud (coup : %u)\n", k, coups[k]->colonne);
 
 	        		enfant = ajouterEnfant(cur, coups[k]);
-	        		jouerCoup(enfant->etat, coups[k]);
+	        		jouerCoup(enfant->etat, coups[k]) ;
 	        		k++;
 	        	}
 	        	
@@ -486,7 +453,8 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     			cur = cur->enfants[r];
 
     			//DEBUG
-        		if(AFFICHAGE) printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
+        		if(DEBUG) printf("\t\tChoix aléatoire d'un fils (le noeud n'avait pas d'enfant) : %u\n", r);
+
         	} else {
         		//le noeud a déjà des enfants, on en cherche un à développer
 
@@ -504,7 +472,8 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
         		cur = cur->enfants[nonDev[r]];
 
         		//DEBUG
-        		if(AFFICHAGE) printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
+        		if(DEBUG) printf("\t\tChoix aléatoire d'un fils non développé (le noeud a déjà des enfants) : %u\n", r);
+
         	}
         }
                 
@@ -513,7 +482,7 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
         */
 
         //DEBUG
-        if(AFFICHAGE) printf("\n\t3. SIMULATION\n");
+        if(DEBUG) printf("\n\t3. SIMULATION\n");
         
         Etat * etatAleatoire = copieEtat(cur->etat);
 
@@ -527,7 +496,8 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	        	k++;
 	        }
 
-	        if(AFFICHAGE) printf("\t\t\tCoup à jouer... (joueur : %d)\n", etatAleatoire->joueur);
+	        //DEBUG
+	        if(DEBUG) printf("\t\t\tCoup à jouer... (joueur : %d)\n", etatAleatoire->joueur);
 
 	        //choix aléatoire d'un coup parmis ceux possible et affectation du coup sur l'état
 	        int opti = 0;
@@ -542,7 +512,7 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	        		free(etatTemporaire);
 
 			        //DEBUG
-        			if(AFFICHAGE) printf("\t\t\t(OPTIMISATION Q3) Je joue le coup %u (coup : %u)\n", i, coups[i]->colonne);
+        			if(DEBUG) printf("\t\t\t(OPTIMISATION Q3) Je joue le coup %u (coup : %u)\n", i, coups[i]->colonne);
 
 	        		break;
 	        	}
@@ -555,9 +525,10 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	        	jouerCoup(etatAleatoire, coups[r]);
 
 		        //DEBUG
-        		if(AFFICHAGE) printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
+        		if(DEBUG) printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
 	        }
 
+	        //libération des coups possibles
             k = 0;
 	        while (coups[k] != NULL) {
                 free(coups[k]);
@@ -568,56 +539,45 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	    
 	    
 	    //DEBUG
-	    if(AFFICHAGE) printf("\t\tSimulation terminée\n");
+	    if(DEBUG) printf("\t\tSimulation terminée\n");
 
         //DEBUG
-        if(AFFICHAGE) printf("\n\t4. MISE A JOUR\n");
+        if(DEBUG) printf("\n\t4. MISE A JOUR\n");
 
 		//recompense de 1 si l'ordi est gagnant, 0 sinon
         int recompense = 0;
         if (testFin(etatAleatoire) == ORDI_GAGNE)
         	recompense = 1;
+
 	    free(etatAleatoire);
 
-        
-        //DEBUG
-       if(AFFICHAGE) printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
+       	//DEBUG
+       	if(DEBUG) printf("\t\tMise à jour d'une simulation avec en récompense %u\n", recompense);
 
+       	//parcours des noeud du cur (courant) vers la racine et mise à jour des valeurs
         while (cur != NULL) {
+
         	//DEBUG
-        	if(AFFICHAGE) printf("\t\t\tMise à jour d'un noeud\n");
+        	if(DEBUG) printf("\t\t\tMise à jour d'un noeud\n");
 
         	cur->nb_simus++;
         	cur->nb_victoires = cur->nb_victoires + recompense;
         	cur = cur->parent;
         }
-
-        //DEBUG
-        if(AFFICHAGE) printf("\t\tFin de la remontada\n");
         
         //DEBUG
-        if(AFFICHAGE) printf("\n\t- GESTION TEMPS\n");
+        if(DEBUG) printf("\n\t- GESTION TEMPS\n");
         
         // calcul du temps
         toc = clock();
         temps = (toc - tic) / CLOCKS_PER_SEC;
 
-        iter++;
+        iter++; //nombre d'itérations du mcts
 
         //DISPLAY?
-        if(!AFFICHAGE)afficherProgres(temps, tempsmax);
+        if(!DEBUG)afficherProgres(temps, tempsmax);
                 
     } while(temps < tempsmax);
-
-    /*
-    //recherche du meilleur coup à jouer - critère maximisation de la B-valeur
-	bMax = B_Value(racine->enfants[0]);
-	indMax = 0;
-    for (i = 1; i < racine->nb_enfants; i++) {
-    	if (B_Value(racine->enfants[i]) > bMax)
-    		indMax = i;
-    }
-    meilleur_coup = racine->enfants[indMax]->coup;*/
 
     // recherche du meilleur coup à jouer
     if (critere) {
@@ -636,7 +596,7 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     	double recompenseMax = -DBL_MAX;
     	indMax = -1;
     	for (i = 0; i < racine->nb_enfants; i++) {
-			double recompense = (racine->enfants[i]->nb_simus == 0) ? 0. : (double)racine->enfants[i]->nb_victoires / (double)racine->enfants[i]->nb_simus;
+			double recompense = (double)racine->enfants[i]->nb_victoires / (double)racine->enfants[i]->nb_simus;
     		if (recompense > recompenseMax) {
     			indMax = i;
     			recompenseMax = recompense;
@@ -648,10 +608,10 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     //application du meilleur coup sur le jeu actuel
     jouerCoup(etat, meilleur_coup);
 
+    //affichages de fin de mcts
     printf("\rNombre de simulations réalisées : %d\n", iter);
     printf("Estimation de la probabilité de victoire de l'ordinateur : %.2f%%\n", ((double)racine->enfants[indMax]->nb_victoires / (double)racine->enfants[indMax]->nb_simus) * 100.);
     
-    //free nécessaires
     freeNoeud(racine);
 }
 
@@ -663,7 +623,7 @@ void creerTestEtat (char * filename){
     Coup *coup;
     int cpt = 0;
     if (fichier != NULL){
-        char col = NULL;
+        char col = ' ';
         while(col != EOF){
             col = fgetc(fichier);
             cpt++;
@@ -671,7 +631,7 @@ void creerTestEtat (char * filename){
         int tab[cpt];
         cpt = 0;
         rewind(fichier);
-        col = NULL;
+        col = ' ';
         while(col != EOF){
             col = fgetc(fichier);
             int col1 = atoi(&col);
@@ -703,6 +663,7 @@ void creerTestEtat (char * filename){
 
 int main (int argc, char **argv) {
     
+    //TO REMOVE
     if (argc == 3) {
     	// si on fourni un troisième argument avec le nom du fichier test, on exécute le test et rien d'autre
     	creerTestEtat("test.txt");
@@ -710,18 +671,16 @@ int main (int argc, char **argv) {
     }
 
     if(argc == 2) {
-    	// si on fourni un deuxième argument avec 1, on enable l'affichage
-	    AFFICHAGE = atoi(argv[1]);
+    	// si on fourni un deuxième argument avec 1, on active les affichages de DEBUG
+	    atoi(argv[1]) == 1 ? DEBUG = 1 : DEBUG = 0;
     }
-    
-    // sinon on exécute le programme sans affichage supplémentaires
-    
-    srand(time(NULL));
+        
+    srand(time(NULL)); //reset du pseudo aléatoire
     Coup * coup;
     FinDePartie fin = NON;
     int critere = -1;
 
-    // Choisir la stratégie de l'IA (robuste ou max) :
+    // Choisir la stratégie de l'IA (max ou robuste) :
     do {
         
         printf("Quel critère d'IA utiliser ( 0 : Max, 1 : Robuste ) ? ");
@@ -729,9 +688,7 @@ int main (int argc, char **argv) {
         
     } while (critere < 0 || critere > 1);
 
-    // initialisation
     Etat * etat = etat_initial();
-    
     etat->joueur = -1;
     
     // Choisir qui commence :
@@ -750,11 +707,10 @@ int main (int argc, char **argv) {
         if ( etat->joueur == 0 ) {
             // tour de l'humain
             coup = NULL;
+
             do {
-                
                 if (coup != NULL) free(coup); //free du coup avant d'en redemander un nouveau
                 coup = demanderCoup();
-                
             } while (!coupJouable(etat, coup));
             
             jouerCoup(etat, coup);
@@ -763,9 +719,7 @@ int main (int argc, char **argv) {
             
         } else {
             // tour de l'Ordinateur
-            
             ordijoue_mcts( etat, critere, TEMPS );
-             
         }
         
         fin = testFin(etat);
