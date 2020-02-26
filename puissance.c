@@ -9,7 +9,7 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 2        // temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 14        // temps de calcul pour un coup avec MCTS (en secondes)
 #define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
@@ -346,7 +346,7 @@ double B_Value(Noeud * noeud){
     if (noeud->nb_simus == 0)
     	moyenne = 0;
     else
-    	moyenne = noeud->nb_victoires / noeud->nb_simus;
+    	moyenne = (double)noeud->nb_victoires / (double)noeud->nb_simus;
 
 	//DEBUG
     //if(AFFICHAGE) printf("%f + %d * %f (-> ln : %f)\n", signe * moyenne, COMPROMIS, sqrt(log(noeuds->parent->nb_simus)/noeuds->nb_simus), log(noeuds->parent->nb_simus));
@@ -355,7 +355,7 @@ double B_Value(Noeud * noeud){
     if (noeud->parent->nb_simus == 0)
     	res = (signe * moyenne);
     else
-    	res = (signe * moyenne) + (COMPROMIS * sqrt(log(noeud->parent->nb_simus)/noeud->nb_simus));
+    	res = (signe * moyenne) + (COMPROMIS * sqrt(log((double)noeud->parent->nb_simus)/(double)noeud->nb_simus));
 
     return res;
 }
@@ -439,8 +439,10 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
         		if(AFFICHAGE) printf("\t\t\tcur_nb_enfants : %u | Noeud_nb_simus : %u | B-valeur (%d) : %f\n", cur->nb_enfants, cur->enfants[i]->nb_simus, i, B_Value(cur->enfants[i]));
 
     			//sauvegarde de l'indice du noeud ayant la plus grande B-valeur
-        		if (B_Value(cur->enfants[i]) > bMax)
+        		if (B_Value(cur->enfants[i]) > bMax){
         			indMax = i;
+                    bMax = B_Value(cur->enfants[i]);
+                }
         	}
         	//DEBUG
         	if(AFFICHAGE) printf("\t\tB-valeur max (%d) : %f\n", indMax, bMax);
