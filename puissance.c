@@ -483,7 +483,6 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 
 	        	//selection d'un enfant au hasard
     			int r = rand() % cur->nb_enfants;
-    			enfant = cur->enfants[r];
     			cur = cur->enfants[r];
 
     			//DEBUG
@@ -502,7 +501,6 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 
         		//choix aléatoire d'un fils non développé
         		int r = rand() % j;
-        		enfant = cur->enfants[nonDev[r]];
         		cur = cur->enfants[nonDev[r]];
 
         		//DEBUG
@@ -517,7 +515,7 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
         //DEBUG
         if(AFFICHAGE) printf("\n\t3. SIMULATION\n");
         
-        Etat * etatAleatoire = copieEtat(enfant->etat);
+        Etat * etatAleatoire = copieEtat(cur->etat);
 
         //tant que l'état du jeu de l'enfant est interminé
 	    while(testFin(etatAleatoire) == NON) {
@@ -579,7 +577,6 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
         int recompense = 0;
         if (testFin(etatAleatoire) == ORDI_GAGNE)
         	recompense = 1;
-
 	    free(etatAleatoire);
 
         
