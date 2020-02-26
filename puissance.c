@@ -9,7 +9,7 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 10        // temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 2        // temps de calcul pour un coup avec MCTS (en secondes)
 #define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
@@ -532,10 +532,33 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	        if(AFFICHAGE) printf("\t\t\tCoup à jouer... (joueur : %d)\n", etatAleatoire->joueur);
 
 	        //choix aléatoire d'un coup parmis ceux possible et affectation du coup sur l'état
-	        int r = rand() % k;
-	        jouerCoup(etatAleatoire, coups[r]);
+	        int opti = 0;
 
-	        if(AFFICHAGE) printf("\t\t\tCoup joué (joueur : %d)\n", etatAleatoire->joueur);
+	        //cherche un coup gagnant à jouer (optimisation question 3)
+	        for (i = 0; i < k; i++) {
+	        	Etat * etatTemporaire = copieEtat(etatAleatoire);
+	        	jouerCoup(etatTemporaire, coups[i]);
+	        	if (testFin(etatTemporaire) == ORDI_GAGNE) {
+	        		opti = 1;
+	        		jouerCoup(etatAleatoire, coups[i]);
+	        		free(etatTemporaire);
+
+			        //DEBUG
+        			if(AFFICHAGE) printf("\t\t\t(OPTIMISATION Q3) Je joue le coup %u (coup : %u)\n", i, coups[i]->colonne);
+
+	        		break;
+	        	}
+	        	free(etatTemporaire);
+	        }
+
+	        //jouer le coup aléatoire si aucun coup gagnant n'a été trouvé
+	        if (!opti) {
+	        	int r = rand() % k;
+	        	jouerCoup(etatAleatoire, coups[r]);
+
+		        //DEBUG
+        		if(AFFICHAGE) printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
+	        }
 
             k = 0;
 	        while (coups[k] != NULL) {
@@ -543,9 +566,6 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
 	        	k++;
 	        }
 	        free(coups);
-
-	        //DEBUG
-	        if(AFFICHAGE) printf("\t\t\tJe joue le coup %u (coup : %u)\n", r, coups[r]->colonne);
 	    }
 	    
 	    
@@ -628,17 +648,11 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     	meilleur_coup = racine->enfants[indMax]->coup;
     }
 
-    // choix d'un coup gagnant s'il y en a un
-    for (i = 0; i < racine->nb_enfants; i++) {
-    	if (testFin(racine->enfants[i]->etat) == ORDI_GAGNE) {
-    		meilleur_coup = racine->enfants[i]->coup;
-    	}
-    }
-
     //application du meilleur coup sur le jeu actuel
     jouerCoup(etat, meilleur_coup);
 
     printf("\rItérations : %d       \n", iter);
+    printf("Estimation de la probabilité de victoire de l'ordinateur : %.2f%%\n", ((double)racine->enfants[indMax]->nb_victoires / (double)racine->enfants[indMax]->nb_simus) * 100.);
     
     //free nécessaires
     freeNoeud(racine);
