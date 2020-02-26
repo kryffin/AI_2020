@@ -655,7 +655,7 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     freeNoeud(racine);
 }
 
-void creerTestEtat (char * filename){
+Etat* creerTestEtat (char * filename){
     FILE* fichier = NULL;
     Etat * etat = etat_initial();
     etat->joueur = 0;
@@ -698,14 +698,58 @@ void creerTestEtat (char * filename){
             printf( "PARTIE PAS FINIE\n");
         else
         	printf( "** BRAVO, l'ordinateur a perdu  **\n");
+        return etat;
     }
 }
 
 int main (int argc, char **argv) {
     
     if (argc == 3) {
+        srand(time(NULL));
+        Coup * coup;
+        FinDePartie fin = NON;
+        int critere = 0;
     	// si on fourni un troisième argument avec le nom du fichier test, on exécute le test et rien d'autre
-    	creerTestEtat("test.txt");
+    	Etat * etat = creerTestEtat("test.txt");
+        while (fin == NON) {
+            printf("\n");
+            afficheJeu(etat);
+            
+            if ( etat->joueur == 0 ) {
+                // tour de l'humain
+                coup = NULL;
+                do {
+                    
+                    if (coup != NULL) free(coup); //free du coup avant d'en redemander un nouveau
+                    coup = demanderCoup();
+                    
+                } while (!coupJouable(etat, coup));
+                
+                jouerCoup(etat, coup);
+                
+                free(coup);
+                
+            } else {
+                // tour de l'Ordinateur
+                
+                ordijoue_mcts( etat, critere, TEMPS );
+                
+            }
+            
+            fin = testFin(etat);
+        }
+        
+        printf("\n");
+        afficheJeu(etat);
+        free(etat);
+        
+        if ( fin == ORDI_GAGNE )
+            printf( "** L'ordinateur a gagné **\n");
+        else if ( fin == MATCHNUL )
+            printf(" Match nul !  \n");
+        else
+            printf( "** BRAVO, l'ordinateur a perdu  **\n");
+
 	    return 0;
     }
 
