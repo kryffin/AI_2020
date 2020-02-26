@@ -84,8 +84,6 @@ void afficheJeu (Etat *etat) {
     
     //première ligne (indices des colonnes)
     int i,j;
-
-    printf("Joueur : %d\n", etat->joueur);
     
     //boucle d'affichage de la grille
     for (j = GRILLE_HAUTEUR-1; j >= 0; j--) {
@@ -651,7 +649,7 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     //application du meilleur coup sur le jeu actuel
     jouerCoup(etat, meilleur_coup);
 
-    printf("\rItérations : %d       \n", iter);
+    printf("\rNombre de simulations réalisées : %d\n", iter);
     printf("Estimation de la probabilité de victoire de l'ordinateur : %.2f%%\n", ((double)racine->enfants[indMax]->nb_victoires / (double)racine->enfants[indMax]->nb_simus) * 100.);
     
     //free nécessaires
