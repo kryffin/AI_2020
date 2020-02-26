@@ -9,7 +9,7 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7         // nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 14        // temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 5        // temps de calcul pour un coup avec MCTS (en secondes)
 #define COMPROMIS sqrt(2)    // Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
@@ -310,13 +310,13 @@ FinDePartie testFin( Etat * etat ) {
                 
                 // diagonales
                 k = 0;
-                while (k < SUITE_GAGNANTE && j+k < SUITE_GAGNANTE && etat->grille[i+k][j+k] == etat->grille[i][j])
+                while (k < SUITE_GAGNANTE && j+k < GRILLE_HAUTEUR && i+k < GRILLE_LARGEUR && etat->grille[i+k][j+k] == etat->grille[i][j])
                     k++;
                 if (k == SUITE_GAGNANTE)
                     return etat->grille[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
                 
                 k = 0;
-                while (k < SUITE_GAGNANTE && j-k >= 0 && etat->grille[i+k][j-k] == etat->grille[i][j])
+                while (k < SUITE_GAGNANTE && j-k >= 0 && i+k < GRILLE_LARGEUR && etat->grille[i+k][j-k] == etat->grille[i][j])
                     k++;
                 if (k == SUITE_GAGNANTE)
                     return etat->grille[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
