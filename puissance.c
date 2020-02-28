@@ -9,7 +9,6 @@
 // Paramètres du jeu
 #define LARGEUR_MAX 7        	// nb max de fils pour un noeud (= nb max de coups possibles) = 7 car on ne peut insérer de jetons que par colonne (7 colonnes)
 
-#define TEMPS 5        		  	// temps de calcul pour un coup avec MCTS (en secondes)
 #define COMPROMIS sqrt(2)    	// Constante c, qui est le compromis entre exploitation et exploration
 
 #define GRILLE_LARGEUR 7
@@ -20,6 +19,7 @@
 #define AUTRE_JOUEUR(i) (1-(i))
 
 int DEBUG = 0;
+int TEMPS = 16; // temps de calcul pour un coup avec MCTS (en secondes)
 
 /*
 	joueur 0 : humain
@@ -135,34 +135,6 @@ void jouerCoup (Etat *etat, Coup *coup) {
     
     //changement du joueur
     etat->joueur = AUTRE_JOUEUR(etat->joueur);
-}
-
-// TO REMOVE
-Etat* jouerCoupTest (Etat *etat, Coup *coup) {
-
-    // TODO: à compléter
-
-    /* par exemple : */
-    if (etat->grille[coup->colonne][GRILLE_HAUTEUR-1] != ' ') {
-        return NULL; //si l'emplacement le plus haut d'une colonne est déjà pris on ne peux pas jouer dans cette colonne
-    } else {
-        int j;
-
-        //parcours des lignes pour trouver la première libre
-        for (j = 0; j < GRILLE_HAUTEUR; j++) {
-            if (etat->grille[coup->colonne][j] == ' ') {
-                etat->grille[coup->colonne][j] = etat->joueur ? 'O' : 'X'; //on met un jeton à l'emplacement libre le plus bas de la colonne demandée O : humain; X : machine
-                break;
-            }
-        }
-
-        // à l'autre joueur de jouer
-        printf("avant: %d ",etat->joueur);
-        etat->joueur = AUTRE_JOUEUR(etat->joueur);
-        printf("après: %d ",etat->joueur);
-        afficheJeu(etat);
-        return etat; //le coup est jouable
-    }
 }
 
 // Retourne une liste de coups possibles à partir d'un etat
@@ -615,111 +587,19 @@ void ordijoue_mcts(Etat * etat, int critere, clock_t tempsmax) {
     freeNoeud(racine);
 }
 
-Etat* creerTestEtat (char * filename){
-    FILE* fichier = NULL;
-    Etat * etat = etat_initial();
-    etat->joueur = 0;
-    fichier = fopen(filename, "r+");
-    Coup *coup;
-    int cpt = 0;
-    if (fichier != NULL){
-        char col = ' ';
-        while(col != EOF){
-            col = fgetc(fichier);
-            cpt++;
-        }
-        int tab[cpt];
-        cpt = 0;
-        rewind(fichier);
-        col = ' ';
-        while(col != EOF){
-            col = fgetc(fichier);
-            int col1 = atoi(&col);
-            tab[cpt] = col1;
-            cpt++;
-        }
-        fclose(fichier);
-        int cpt1 = 0;
-        while(cpt1 < cpt-1){
-            int col1 = tab[cpt1];
-            printf("%d \n",col1);
-            coup = nouveauCoup(col1);
-            //etat->joueur = AUTRE_JOUEUR(etat->joueur);
-            jouerCoupTest(etat,coup);
-            cpt1++;
-        }
-        afficheJeu(etat);
-        FinDePartie fin = testFin(etat);
-        if ( fin == ORDI_GAGNE )
-            printf( "** L'ordinateur a gagné **\n");
-        else if ( fin == MATCHNUL )
-            printf(" Match nul !  \n");
-        else if ( fin == NON )
-            printf( "PARTIE PAS FINIE\n");
-        else
-        	printf( "** BRAVO, l'ordinateur a perdu  **\n");
-        return etat;
-    } else {
-    	return etat_initial();
-    }
-}
-
 int main (int argc, char **argv) {
     
-    //TO REMOVE
-    if (argc == 3) {
-        srand(time(NULL));
-        Coup * coup;
-        FinDePartie fin = NON;
-        int critere = 0;
-    	// si on fourni un troisième argument avec le nom du fichier test, on exécute le test et rien d'autre
-    	Etat * etat = creerTestEtat("test.txt");
-        while (fin == NON) {
-            printf("\n");
-            afficheJeu(etat);
-            
-            if ( etat->joueur == 0 ) {
-                // tour de l'humain
-                coup = NULL;
-                do {
-                    
-                    if (coup != NULL) free(coup); //free du coup avant d'en redemander un nouveau
-                    coup = demanderCoup();
-                    
-                } while (!coupJouable(etat, coup));
-                
-                jouerCoup(etat, coup);
-                
-                free(coup);
-                
-            } else {
-                // tour de l'Ordinateur
-                
-                ordijoue_mcts( etat, critere, TEMPS );
-                
-            }
-            
-            fin = testFin(etat);
-        }
-        
-        printf("\n");
-        afficheJeu(etat);
-        free(etat);
-        
-        if ( fin == ORDI_GAGNE )
-            printf( "** L'ordinateur a gagné **\n");
-        else if ( fin == MATCHNUL )
-            printf(" Match nul !  \n");
-        else
-            printf( "** BRAVO, l'ordinateur a perdu  **\n");
-
-	    return 0;
+    if (argc < 2 || argc > 3) {
+    	printf("Utilisation : ./puissance [temps] (option : [debug=1])\n");
+    	return 0;
     }
 
-    if(argc == 2) {
+    if(argc == 3) {
     	// si on fourni un deuxième argument avec 1, on active les affichages de DEBUG
-	    atoi(argv[1]) == 1 ? (DEBUG = 1) : (DEBUG = 0);
+	    atoi(argv[2]) == 1 ? (DEBUG = 1) : (DEBUG = 0);
     }
+
+    TEMPS = atoi(argv[1]);
         
     srand(time(NULL)); //reset du pseudo aléatoire
     Coup * coup;
